@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Data and large files
+data/
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+
+# Model artefacts
+checkpoints/
+*.pt
+*.pth
+*.bin
+*.safetensors
+hf_cache/
+hf_datasets_cache/
+
+# Logs and outputs
+logs/
+runs/
+results/*.csv
+results/*.png
+results/*.jpg
+*.log
+wandb/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/

@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+title: Arabic Toddler WavLM Fine-tuning
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Layan
+    family-names: Al-Faifi
+    email: layan.alfaifi@example.com
+repository-code: https://github.com/layanyahyaalfaifi/arabic-toddler-wavlm-finetuning
+abstract: >-
+  Supervised Contrastive Learning fine-tuning of
+  WavLM-base-plus on the AbjadKids Arabic-children
+  speech corpus, conducted as an ablation experiment
+  for the HAYATY developmental-screening project.
+keywords:
+  - speech-processing
+  - wavlm
+  - contrastive-learning
+  - arabic-speech
+  - toddler-speech
+  - developmental-screening
+license: MIT
+date-released: '2026-05-01'

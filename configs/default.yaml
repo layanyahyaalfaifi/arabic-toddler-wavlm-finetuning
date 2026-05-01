@@ -1,0 +1,57 @@
+# Default configuration for WavLM Supervised Contrastive fine-tuning
+# All values match the configuration used to produce the reported results.
+
+data:
+  dataset_id: Aziz-snoubra/Abjad-Kids
+  local_dir: data/AbjadKids
+  excluded_classes: [Walad]
+  audio_extensions: [.wav, .mp3, .flac, .ogg, .m4a]
+  categories: [alphabet, colors, numbers]
+  speaker_disjoint_split:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+    seed: 42
+
+audio:
+  sample_rate: 16000
+  max_seconds: 2.5
+
+model:
+  backbone: microsoft/wavlm-base-plus
+  projection_hidden: 256
+  projection_dim: 128
+  dropout: 0.1
+  freeze_first_n_layers: 4
+
+loss:
+  temperature: 0.05
+
+sampler:
+  n_classes_per_batch: 8
+  n_samples_per_class: 4
+
+optim:
+  optimizer: adamw
+  learning_rate: 1.0e-5
+  weight_decay: 1.0e-4
+  betas: [0.9, 0.98]
+  grad_clip_norm: 1.0
+
+schedule:
+  type: cosine_annealing
+  total_steps: 2000
+  eta_min: 1.0e-6
+
+logging:
+  print_every: 10
+  save_every: 100
+
+paths:
+  checkpoint_dir: checkpoints/
+  log_dir: logs/
+
+evaluation:
+  test_samples_per_class: 20
+  retrieval_top_k: [1, 5]
+  clustering_methods: [agglomerative_cosine, hdbscan]
