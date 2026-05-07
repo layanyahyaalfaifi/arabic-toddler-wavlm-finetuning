@@ -43,6 +43,7 @@ class TrainConfig:
 
     print_every: int = 10
     save_every: int = 100
+    validate_every: int = 100
 
     checkpoint_dir: str = "checkpoints"
 
@@ -61,7 +62,35 @@ def save_checkpoint(model, optimizer, scheduler, step, label2id, id2label, path)
     )
 
 
-def train(train_df, label2id, id2label, cfg: TrainConfig, device: str = "cuda"):
+def evaluate_validation_loss(model, val_loader, criterion, device):
+    """Compute mean SupCon loss on the validation split.
+
+    The validation split is held out at the speaker level so that no
+    speaker seen during training appears in the validation set.
+    """
+    model.eval()
+    losses = []
+    with torch.no_grad():
+        for batch in val_loader:
+            input_values = batch["input_values"].to(device, non_blocking=True)
+            labels = batch["labels"].to(device, non_blocking=True)
+            embeddings = model(input_values)
+            loss = criterion(embeddings, labels)
+            losses.append(loss.item())
+    model.train()
+    if not losses:
+        return float("nan")
+    return sum(losses) / len(losses)
+
+
+def train(
+    train_df,
+    label2id,
+    id2label,
+    cfg: TrainConfig,
+    val_df=None,
+    device: str = "cuda",
+):
     os.makedirs(cfg.checkpoint_dir, exist_ok=True)
 
     max_len = int(cfg.sample_rate * cfg.max_seconds)
@@ -78,6 +107,22 @@ def train(train_df, label2id, id2label, cfg: TrainConfig, device: str = "cuda"):
         num_workers=0,
         pin_memory=True,
     )
+
+    val_loader = None
+    if val_df is not None and len(val_df) > 0:
+        val_dataset = AbjadAudioDataset(val_df, sr=cfg.sample_rate, max_len=max_len)
+        val_sampler = BalancedBatchSampler(
+            val_df,
+            n_classes=cfg.n_classes_per_batch,
+            n_samples=cfg.n_samples_per_class,
+        )
+        val_loader = DataLoader(
+            val_dataset,
+            batch_sampler=val_sampler,
+            collate_fn=collate_fn,
+            num_workers=0,
+            pin_memory=True,
+        )
 
     model = WavLMSupConModel(
         model_name=cfg.backbone,
@@ -102,6 +147,8 @@ def train(train_df, label2id, id2label, cfg: TrainConfig, device: str = "cuda"):
     loader_iter = iter(train_loader)
     pbar = tqdm(range(cfg.total_steps), total=cfg.total_steps)
 
+    best_val_loss = float("inf")
+
     for step in pbar:
         batch = next(loader_iter)
         input_values = batch["input_values"].to(device, non_blocking=True)
@@ -118,6 +165,18 @@ def train(train_df, label2id, id2label, cfg: TrainConfig, device: str = "cuda"):
         if step % cfg.print_every == 0:
             lr = scheduler.get_last_lr()[0]
             pbar.set_description(f"Step {step} | Loss {loss.item():.4f} | LR {lr:.2e}")
+
+        if val_loader is not None and step > 0 and step % cfg.validate_every == 0:
+            val_loss = evaluate_validation_loss(model, val_loader, criterion, device)
+            pbar.write(f"Step {step} | Val SupCon Loss {val_loss:.4f}")
+
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_path = os.path.join(cfg.checkpoint_dir, "wavlm_supcon_best.pt")
+                save_checkpoint(
+                    model, optimizer, scheduler, step, label2id, id2label, best_path
+                )
+                pbar.write(f"  -> new best checkpoint saved at {best_path}")
 
         if step > 0 and step % cfg.save_every == 0:
             path = os.path.join(cfg.checkpoint_dir, f"wavlm_supcon_step_{step}.pt")

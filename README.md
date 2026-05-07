@@ -25,11 +25,10 @@ the pretrained baseline. The experiment tested this hypothesis directly.
 - ~140 word classes (alphabet, colours, numbers)
 - Audio sampled at 16 kHz, mono
 - Train / Val / Test split: 70% / 15% / 15%, **speaker-disjoint**
-- The validation split was held out by the data-preparation script
-  but **was not consumed during training**: the reported run optimised the
-  fixed-step cosine schedule without validation-based early stopping. The
-  split is preserved in the code so that future runs can enable validation
-  monitoring without reshaping the data pipeline.
+- The validation split is held out at the speaker level so that no
+  speaker seen during training appears in the validation set. The
+  validation SupCon loss is computed every 100 training steps and the
+  best-val checkpoint is saved as `wavlm_supcon_best.pt`.
 - The under-represented class `Walad` was excluded.
 
 ## Method
